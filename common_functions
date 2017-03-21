@@ -1,0 +1,56 @@
+HNAME=`hostname -s`
+CCYYMMDD=`date +"%Y%m%d"`
+TIMESTAMP=`date +%C%y%m%d.%H%M%S`
+export DA=`date +%a`
+export DU=`date +%u`
+PROG_NAM=`basename $0 .sh`
+HOME_DIR=/usr/local/pgsql/dba
+BIN_DIR=${HOME_DIR}/scripts
+LOG_DIR=${HOME_DIR}/logs/${PROG_NAM}                   ; [ -d $LOG_DIR ] || mkdir -p $LOG_DIR
+WRK_DIR=${HOME_DIR}/works/${PROG_NAM}                  ; [ -d $WRK_DIR ] || mkdir -p $WRK_DIR
+CFG_DIR=${HOME_DIR}/config
+CATALOG_FL=${CFG_DIR}/psql.catalog
+LOG_FL=${LOG_DIR}/${PROG_NAM}_${CCYYMMDD}.log
+WRK_FL=${WRK_DIR}/${PROG_NAM}_${CCYYMMDD}.wrk
+MAIL_FL=${WRK_DIR}/${PROG_NAM}_${CCYYMMDD}.mail
+DUMP_DIR=/data/ifxdba
+JOB_STATUS_FL=${HOME_DIR}/job_status.dat
+JOB_SCHED_FL=${HOME_DIR}/job_sched.dat
+#JOB_STATUS_FL=${HOME_DIR}/job_status.debug
+#JOB_SCHED_FL=${HOME_DIR}/job_sched.debug
+DBA_mail_UNIX='zcyan@uw.edu' 
+#DBA_mail_UNIX='dba-r@uw.edu'
+SCPfileID=~postgres/.ssh/id_rsa
+SCPtarget=dba@dba-unixvm.cac.washington.edu:/data/dba/dl/postgres/SSG/LOG_DIR
+rm -f $WRK_FL $MAIL_FL
+
+## ****************************************************************
+##                              begin timestamp in job_status
+##   Note that in order to not have duplicated path or extra slashes
+##    recorded as part of the job_script_name, the batch scripts
+##    should really be run via crontab with full pathname.  Or, at
+##    least executed with full path name interactively or via AT.
+##    If you don't use full path PLUS script name, then you get
+##    incomplete or doublepaths in the field that gets submitted
+##    to dbapubs job_script_name column.
+## ****************************************************************
+
+function beginjob_stats {
+   HNAME=`hostname | cut -d '.' -f1`
+   job_number=`expr $$ `
+   job_script_name=$0
+   job_begin_dt_time=`date '+%Y-%m-%d %H:%M:%S'`
+   job_beginday=`date +%a`
+   job_host=`hostname -s`
+   job_script_name=$0
+}
+
+function endjob_stats {
+   job_end_dt_time=`date '+%C%y-%m-%d %H:%M:%S'`
+   echo $HNAME'|'$job_server'|'$job_name'|'$job_number'|'$job_script_name'|'$job_begin_dt_time'|'$job_end_dt_time'|'$job_beginday'|||||||'  |tee -a $JOB_STATUS_FL
+   echo update job_schedule set last_rundate="'"$job_begin_dt_time"'" , last_runday="'"$job_beginday"'" where job_host="'"$HNAME"'" and job_server="'"$job_server"'" and job_name="'"$job_name"'" " ; "|tee -a $JOB_SCHED_FL
+
+   rm -f $WRK_FL $MAIL_FL 2>/dev/null
+}
+
+
