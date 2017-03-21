@@ -1,5 +1,6 @@
 #!/bin/sh 
 #-av
+
 # script name: removeoldlog.sh
 
 . /usr/local/lib/std.profile
